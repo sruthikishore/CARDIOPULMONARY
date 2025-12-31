@@ -1,16 +1,26 @@
-# cardiopulmonary_monitor
+# Cardiopulmonary Monitor
 
-A new Flutter project.
+A Flutter-based mobile application for continuous cardiopulmonary health monitoring.
+
+## Project Overview
+This application visualizes real-time health data collected from an IoT-based monitoring system (ESP32 + sensors).  
+It displays heart rate, SpO₂, respiration trends, and AI-based risk alerts to support early detection and home-based monitoring.
+
+## Tech Stack
+- Flutter (Frontend)
+- ESP32 (IoT Device)
+- Python (Data acquisition & ML)
+- Machine Learning (Risk prediction)
 
 ## Getting Started
+This project is the Flutter frontend module.
 
-This project is a starting point for a Flutter application.
+### Prerequisites
+- Flutter SDK
+- VS Code
+- Android Emulator or Physical Device
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Run the app
+```bash
+flutter pub get
+flutter run
