@@ -14,7 +14,7 @@ class RiskAnalysisScreen extends StatelessWidget {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 2,
         showSelectedLabels: true,
-        showUnselectedLabels: true,
+          showUnselectedLabels: true,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
         items: const [
