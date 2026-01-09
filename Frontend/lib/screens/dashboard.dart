@@ -1,226 +1,152 @@
-import 'package:cardiopulmonary_monitor/screens/profile.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_textstyles.dart';
 import 'risk_analysis.dart';
+import 'profile.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+class DashboardScreen extends StatefulWidget {
+  final int userId;
+
+  const DashboardScreen({
+    super.key,
+    required this.userId,
+  });
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool isLoading = true;
+
+  int heartRate = 0;
+  int spo2 = 0;
+  int respiration = 0;
+  double temperature = 0.0;
+
+  // ⚠️ CHANGE THIS TO YOUR SYSTEM IP
+  static final String baseUrl = dotenv.env['BASE_URL']!;
+  final int userId = 1; // dummy user for now
+
+  @override
+  void initState() {
+    super.initState();
+    fetchLatestVitals();
+  }
+
+  Future<void> fetchLatestVitals() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/vitals/latest/$userId"),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          heartRate = data["heart_rate"];
+          spo2 = data["spo2"];
+          respiration = data["respiratory_rate"];
+          temperature = data["body_temperature"].toDouble();
+          isLoading = false;
+        });
+      } else {
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primary,
 
-      // ===== BOTTOM NAV =====
       bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
         onTap: (index) {
-          if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const DashboardScreen()),
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const RiskAnalysisScreen(),
-              ),
-            );
+          if (index == 1) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const RiskAnalysisScreen()));
           } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileSettingsScreen()),
-            );
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ProfileSettingsScreen()));
           }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Risk'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
 
       body: SafeArea(
         child: Column(
           children: [
-            // ================= HEADER =================
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.menu, color: AppColors.card),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Cardiopulmonary Monitor',
-                          style: AppTextStyles.section.copyWith(
-                            color: AppColors.card,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Continuous Health. Early Alerts.',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.card.withOpacity(0.85),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.notifications_none, color: AppColors.card),
-                ],
-              ),
-            ),
+            _header(),
+            const SizedBox(height: 12),
 
-            // ================= USER GREETING =================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppColors.card,
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Good Morning',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.card.withOpacity(0.85),
-                        ),
-                      ),
-                      Text(
-                        'Alex Johnson',
-                        style: AppTextStyles.body.copyWith(
-                          color: AppColors.card,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ================= STATUS CARD =================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 36,
-                        width: 36,
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.check,
-                          color: AppColors.success,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'All Systems Normal',
-                            style: AppTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                          const Text('Live Vitals',
+                              style: AppTextStyles.section),
+                          const SizedBox(height: 16),
+
+                          VitalCardExact(
+                            title: 'Heart Rate',
+                            subtitle: 'Beats per minute',
+                            value: heartRate.toString(),
+                            unit: 'bpm',
+                            range: '60–100 bpm',
+                            status: 'Normal',
+                            trend: '',
+                            color: AppColors.danger,
+                            icon: Icons.favorite,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Last updated: 2 min ago',
-                            style: AppTextStyles.caption,
+
+                          VitalCardExact(
+                            title: 'Blood Oxygen',
+                            subtitle: 'SpO₂ saturation',
+                            value: spo2.toString(),
+                            unit: '%',
+                            range: '95–100%',
+                            status: 'Normal',
+                            trend: '',
+                            color: AppColors.primary,
+                            icon: Icons.water_drop,
+                          ),
+
+                          VitalCardExact(
+                            title: 'Respiration Rate',
+                            subtitle: 'Breaths per minute',
+                            value: respiration.toString(),
+                            unit: 'rpm',
+                            range: '12–20 rpm',
+                            status: 'Normal',
+                            trend: '',
+                            color: AppColors.success,
+                            icon: Icons.air,
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // ================= SCROLLABLE LIVE VITALS =================
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Live Vitals', style: AppTextStyles.section),
-                      SizedBox(height: 16),
-
-                      VitalCardExact(
-                        title: 'Heart Rate',
-                        subtitle: 'Beats per minute',
-                        value: '72',
-                        unit: 'bpm',
-                        range: '60–100 bpm',
-                        status: 'Normal',
-                        trend: '+2%',
-                        color: AppColors.danger,
-                        icon: Icons.favorite,
-                      ),
-
-                      VitalCardExact(
-                        title: 'Blood Oxygen',
-                        subtitle: 'SpO₂ saturation',
-                        value: '98',
-                        unit: '%',
-                        range: '95–100%',
-                        status: 'Excellent',
-                        trend: '0%',
-                        color: AppColors.primary,
-                        icon: Icons.water_drop,
-                      ),
-
-                      VitalCardExact(
-                        title: 'Respiration Rate',
-                        subtitle: 'Breaths per minute',
-                        value: '16',
-                        unit: 'rpm',
-                        range: '12–20 rpm',
-                        status: 'Normal',
-                        trend: '-1%',
-                        color: AppColors.success,
-                        icon: Icons.air,
-                      ),
-
-                      // SAFE bottom padding (prevents nav overlap)
-                      SizedBox(height: 24),
-                    ],
-                  ),
-                ),
               ),
             ),
           ],
@@ -228,16 +154,29 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _header() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const Icon(Icons.monitor_heart, color: AppColors.card),
+          const SizedBox(width: 10),
+          Text(
+            'Cardiopulmonary Monitor',
+            style:
+                AppTextStyles.section.copyWith(color: AppColors.card),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
+/* ================= VITAL CARD ================= */
+
 class VitalCardExact extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String value;
-  final String unit;
-  final String range;
-  final String status;
-  final String trend;
+  final String title, subtitle, value, unit, range, status, trend;
   final Color color;
   final IconData icon;
 
@@ -263,71 +202,34 @@ class VitalCardExact extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // HEADER
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                Container(
+                  height: 36,
+                  width: 36,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      height: 36,
-                      width: 36,
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(icon, color: color),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: AppTextStyles.body),
-                        Text(subtitle, style: AppTextStyles.caption),
-                      ],
-                    ),
+                    Text(title, style: AppTextStyles.body),
+                    Text(subtitle, style: AppTextStyles.caption),
                   ],
                 ),
-                Text(
-                  trend,
-                  style: AppTextStyles.caption.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ],
             ),
-
-            const SizedBox(height: 16),
-
-            // VALUE
-            RichText(
-              text: TextSpan(
-                text: value,
-                style: AppTextStyles.vitals.copyWith(color: color),
-                children: [
-                  TextSpan(text: ' $unit', style: AppTextStyles.caption),
-                ],
-              ),
-            ),
-
             const SizedBox(height: 12),
-
-            // FOOTER
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Range\n$range', style: AppTextStyles.caption),
-                Text(
-                  'Status\n$status',
-                  textAlign: TextAlign.right,
-                  style: AppTextStyles.caption.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+            Text("$value $unit",
+                style:
+                    AppTextStyles.vitals.copyWith(color: color)),
+            const SizedBox(height: 6),
+            Text("Range: $range",
+                style: AppTextStyles.caption),
           ],
         ),
       ),

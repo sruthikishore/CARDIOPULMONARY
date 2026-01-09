@@ -1,16 +1,68 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_textstyles.dart';
 
-class ProfileSettingsScreen extends StatelessWidget {
+class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
 
   @override
+  State<ProfileSettingsScreen> createState() => _ProfileSettingsScreenState();
+}
+
+class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
+  static final String baseUrl = dotenv.env['BASE_URL']!;
+  final int userId = 1;
+
+  bool isLoading = true;
+
+  String name = "";
+  String email = "";
+  List<dynamic> devices = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadProfile();
+  }
+
+  Future<void> loadProfile() async {
+    try {
+      final userRes =
+          await http.get(Uri.parse("$baseUrl/api/users/$userId"));
+      final deviceRes =
+          await http.get(Uri.parse("$baseUrl/api/devices/$userId"));
+
+      if (userRes.statusCode == 200) {
+        final u = jsonDecode(userRes.body);
+        name = u["name"];
+        email = u["email"];
+      }
+
+      if (deviceRes.statusCode == 200) {
+        devices = jsonDecode(deviceRes.body);
+      }
+    } catch (_) {
+      // silent fail for demo stability
+    }
+
+    setState(() => isLoading = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
 
-      // ===== APP BAR =====
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.primary,
@@ -35,25 +87,19 @@ class ProfileSettingsScreen extends StatelessWidget {
                       const CircleAvatar(
                         radius: 30,
                         backgroundImage:
-                            AssetImage('assets/avatar.png'), // placeholder
+                            AssetImage('assets/avatar.png'),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Sarah Johnson',
-                              style: AppTextStyles.section,
-                            ),
+                            Text(name, style: AppTextStyles.section),
+                            const SizedBox(height: 4),
+                            Text(email, style: AppTextStyles.caption),
                             const SizedBox(height: 4),
                             Text(
-                              'sarah.johnson@email.com',
-                              style: AppTextStyles.caption,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Patient ID: #CM-45892',
+                              'Patient ID: #CM-$userId',
                               style: AppTextStyles.caption,
                             ),
                           ],
@@ -66,7 +112,6 @@ class ProfileSettingsScreen extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              // ================= EDIT PROFILE =================
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -82,23 +127,14 @@ class ProfileSettingsScreen extends StatelessWidget {
               Text('Device Connection', style: AppTextStyles.section),
               const SizedBox(height: 12),
 
-              _deviceTile(
-                icon: Icons.favorite,
-                title: 'Heart Monitor',
-                subtitle: 'Connected',
-                connected: true,
-              ),
-              _deviceTile(
-                icon: Icons.air,
-                title: 'Lung Monitor',
-                subtitle: 'Connected',
-                connected: true,
-              ),
-              _deviceTile(
-                icon: Icons.watch,
-                title: 'Smart Watch',
-                subtitle: 'Not Connected',
-                connected: false,
+              ...devices.map(
+                (d) => _deviceTile(
+                  icon: _iconForDevice(d["device_type"]),
+                  title: d["device_type"],
+                  subtitle:
+                      d["connected"] ? "Connected" : "Not Connected",
+                  connected: d["connected"],
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -197,6 +233,12 @@ class ProfileSettingsScreen extends StatelessWidget {
 
   // ================= HELPERS =================
 
+  IconData _iconForDevice(String type) {
+    if (type.contains("Heart")) return Icons.favorite;
+    if (type.contains("Lung")) return Icons.air;
+    return Icons.watch;
+  }
+
   Widget _deviceTile({
     required IconData icon,
     required String title,
@@ -206,10 +248,11 @@ class ProfileSettingsScreen extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
-        leading: Icon(icon,
-            color: connected
-                ? AppColors.success
-                : AppColors.textSecondary),
+        leading: Icon(
+          icon,
+          color:
+              connected ? AppColors.success : AppColors.textSecondary,
+        ),
         title: Text(title, style: AppTextStyles.body),
         subtitle: Text(subtitle, style: AppTextStyles.caption),
         trailing: connected
@@ -237,10 +280,7 @@ class ProfileSettingsScreen extends StatelessWidget {
         leading: Icon(icon, color: AppColors.primary),
         title: Text(title, style: AppTextStyles.body),
         subtitle: Text(subtitle, style: AppTextStyles.caption),
-        trailing: Switch(
-          value: value,
-          onChanged: (_) {},
-        ),
+        trailing: Switch(value: value, onChanged: (_) {}),
       ),
     );
   }

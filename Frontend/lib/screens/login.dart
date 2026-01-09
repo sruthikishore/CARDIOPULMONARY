@@ -1,11 +1,57 @@
-import 'package:cardiopulmonary_monitor/screens/dashboard.dart';
 import 'package:flutter/material.dart';
+import 'package:cardiopulmonary_monitor/screens/dashboard.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_textstyles.dart';
 import '../core/theme/app_theme.dart';
+import '../services/api_service.dart';
 
-class LoginScreen extends StatelessWidget {
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  bool isLoading = false;
+
+  /// 🔹 LOGIN HANDLER (API CALL)
+  Future<void> handleLogin() async {
+    setState(() => isLoading = true);
+
+    try {
+      // 🔴 MVP LOGIC:
+      // For demo, we directly map login → user_id = 1
+      // Later this can be replaced with real auth
+      int userId = 1;
+
+      final user = await ApiService.getUser(userId);
+
+      if (user != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DashboardScreen(userId: userId),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Invalid credentials")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Server error. Please try again.")),
+      );
+    }
+
+    setState(() => isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,9 +121,11 @@ class LoginScreen extends StatelessWidget {
                         Text('Email Address', style: AppTextStyles.caption),
                         const SizedBox(height: 6),
                         TextField(
+                          controller: emailController,
                           decoration: InputDecoration(
                             hintText: 'your.email@example.com',
-                            prefixIcon: const Icon(Icons.email_outlined),
+                            prefixIcon:
+                                const Icon(Icons.email_outlined),
                             filled: true,
                             fillColor: AppColors.background,
                             border: OutlineInputBorder(
@@ -93,13 +141,14 @@ class LoginScreen extends StatelessWidget {
                         Text('Password', style: AppTextStyles.caption),
                         const SizedBox(height: 6),
                         TextField(
+                          controller: passwordController,
                           obscureText: true,
                           decoration: InputDecoration(
                             hintText: 'Enter your password',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: const Icon(
-                              Icons.visibility_off_outlined,
-                            ),
+                            prefixIcon:
+                                const Icon(Icons.lock_outline),
+                            suffixIcon:
+                                const Icon(Icons.visibility_off_outlined),
                             filled: true,
                             fillColor: AppColors.background,
                             border: OutlineInputBorder(
@@ -134,21 +183,18 @@ class LoginScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => DashboardScreen(),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              'Sign In',
-                              style: AppTextStyles.body.copyWith(
-                                color: AppColors.card,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            onPressed: isLoading ? null : handleLogin,
+                            child: isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : Text(
+                                    'Sign In',
+                                    style: AppTextStyles.body.copyWith(
+                                      color: AppColors.card,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ),
                         ),
 
@@ -162,7 +208,8 @@ class LoginScreen extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
                               ),
-                              child: Text('or', style: AppTextStyles.caption),
+                              child: Text('or',
+                                  style: AppTextStyles.caption),
                             ),
                             const Expanded(child: Divider()),
                           ],
@@ -175,7 +222,15 @@ class LoginScreen extends StatelessWidget {
                           width: double.infinity,
                           height: 48,
                           child: OutlinedButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      DashboardScreen(userId: 1),
+                                ),
+                              );
+                            },
                             icon: const Icon(Icons.person_outline),
                             label: Text(
                               'Continue as Guest',
@@ -195,7 +250,8 @@ class LoginScreen extends StatelessWidget {
                               children: [
                                 TextSpan(
                                   text: 'Sign Up',
-                                  style: AppTextStyles.caption.copyWith(
+                                  style:
+                                      AppTextStyles.caption.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
                                   ),

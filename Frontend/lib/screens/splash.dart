@@ -1,29 +1,68 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_textstyles.dart';
-import '../core/theme/app_theme.dart';
-
-// 👉 Replace this import with your actual next screen file
 import 'login.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  static final String baseUrl = dotenv.env['BASE_URL']!;
+  bool _navigated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startFlow();
+  }
+
+  Future<void> _startFlow() async {
+    // Optional backend health check (non-blocking)
+    try {
+      await http
+          .get(Uri.parse("$baseUrl/api/health"))
+          .timeout(const Duration(seconds: 2));
+    } catch (_) {}
+
+    // Auto redirect (FASTER)
+    Timer(const Duration(milliseconds: 1500), _goToLogin);
+  }
+
+  void _goToLogin() {
+    if (_navigated || !mounted) return;
+    _navigated = true;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+
+        // ✅ SINGLE TAP ANYWHERE
+        onTap: _goToLogin,
+
+        // ✅ SWIPE STILL WORKS
         onHorizontalDragEnd: (details) {
           if (details.primaryVelocity != null &&
               details.primaryVelocity! > 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const LoginScreen(),
-              ),
-            );
+            _goToLogin();
           }
         },
+
         child: Container(
           width: double.infinity,
           decoration: const BoxDecoration(
@@ -42,7 +81,7 @@ class SplashScreen extends StatelessWidget {
               children: [
                 const Spacer(),
 
-                // App Icon Circle
+                // App Icon
                 Container(
                   height: 96,
                   width: 96,
@@ -80,7 +119,7 @@ class SplashScreen extends StatelessWidget {
 
                 const Spacer(),
 
-                // Page Indicators
+                // Indicators (unchanged)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
