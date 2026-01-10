@@ -8,7 +8,12 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_textstyles.dart';
 
 class RiskAnalysisScreen extends StatefulWidget {
-  const RiskAnalysisScreen({super.key});
+  final int userId;
+
+  const RiskAnalysisScreen({
+    super.key,
+    required this.userId,
+  });
 
   @override
   State<RiskAnalysisScreen> createState() => _RiskAnalysisScreenState();
@@ -16,7 +21,6 @@ class RiskAnalysisScreen extends StatefulWidget {
 
 class _RiskAnalysisScreenState extends State<RiskAnalysisScreen> {
   static final String baseUrl = dotenv.env['BASE_URL']!;
-  final int userId = 1;
 
   bool isLoading = true;
 
@@ -39,11 +43,11 @@ class _RiskAnalysisScreenState extends State<RiskAnalysisScreen> {
   Future<void> loadRiskData() async {
     try {
       final vitalsRes = await http.get(
-        Uri.parse("$baseUrl/api/vitals/latest/$userId"),
+        Uri.parse("$baseUrl/api/vitals/latest/$widget.userId"),
       );
 
       final riskRes = await http.get(
-        Uri.parse("$baseUrl/api/anomalies/latest/$userId"),
+        Uri.parse("$baseUrl/api/anomalies/latest/$widget.userId"),
       );
 
       if (vitalsRes.statusCode == 200) {
@@ -87,19 +91,18 @@ class _RiskAnalysisScreenState extends State<RiskAnalysisScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.primary,
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 2,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.trending_up), label: 'Trends'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.trending_up), label: 'Trends'),
           BottomNavigationBarItem(icon: Icon(Icons.shield), label: 'Risk'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
-
       body: SafeArea(
         child: Column(
           children: [
@@ -145,7 +148,8 @@ class _RiskAnalysisScreenState extends State<RiskAnalysisScreen> {
                                 width: 72,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: riskColor, width: 3),
+                                  border:
+                                      Border.all(color: riskColor, width: 3),
                                 ),
                                 child: Icon(Icons.shield,
                                     color: riskColor, size: 32),
@@ -188,8 +192,7 @@ class _RiskAnalysisScreenState extends State<RiskAnalysisScreen> {
                                 value: confidence,
                                 minHeight: 6,
                                 backgroundColor: AppColors.background,
-                                valueColor:
-                                    AlwaysStoppedAnimation(riskColor),
+                                valueColor: AlwaysStoppedAnimation(riskColor),
                               ),
                             ],
                           ),
@@ -198,11 +201,12 @@ class _RiskAnalysisScreenState extends State<RiskAnalysisScreen> {
 
                       const SizedBox(height: 16),
 
-                      _miniVital(Icons.favorite, 'Heart Rate', '$heartRate bpm'),
-                      _miniVital(Icons.water_drop, 'Oxygen Saturation',
-                          '$spo2 %'),
-                      _miniVital(Icons.air, 'Respiratory Rate',
-                          '$respiration br/min'),
+                      _miniVital(
+                          Icons.favorite, 'Heart Rate', '$heartRate bpm'),
+                      _miniVital(
+                          Icons.water_drop, 'Oxygen Saturation', '$spo2 %'),
+                      _miniVital(
+                          Icons.air, 'Respiratory Rate', '$respiration br/min'),
 
                       const SizedBox(height: 16),
 
@@ -258,15 +262,13 @@ class _RiskAnalysisScreenState extends State<RiskAnalysisScreen> {
         children: [
           Text(title, style: AppTextStyles.section),
           Text('View All',
-              style:
-                  AppTextStyles.caption.copyWith(color: AppColors.primary)),
+              style: AppTextStyles.caption.copyWith(color: AppColors.primary)),
         ],
       ),
     );
   }
 
-  Widget _alertItem(
-      IconData icon, String title, String desc, String time) {
+  Widget _alertItem(IconData icon, String title, String desc, String time) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(

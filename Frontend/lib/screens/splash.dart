@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
     } catch (_) {}
 
     // Auto redirect (FASTER)
-    Timer(const Duration(milliseconds: 1500), _goToLogin);
+    Timer(const Duration(milliseconds: 1000), _goToLogin);
   }
 
   void _goToLogin() {
@@ -57,8 +57,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
         // ✅ SWIPE STILL WORKS
         onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity != null &&
-              details.primaryVelocity! > 0) {
+          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
             _goToLogin();
           }
         },
@@ -83,18 +82,22 @@ class _SplashScreenState extends State<SplashScreen> {
 
                 // App Icon
                 Container(
-                  height: 96,
-                  width: 96,
+                  height: 158,
+                  width: 158,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.card.withOpacity(0.2),
                   ),
-                  child: const Icon(
-                    Icons.monitor_heart,
-                    size: 44,
-                    color: AppColors.card,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/logo.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
+
 
                 const SizedBox(height: 32),
 

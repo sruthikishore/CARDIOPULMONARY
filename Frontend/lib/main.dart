@@ -6,7 +6,7 @@ import 'screens/splash.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: "assets/.env");
+  await dotenv.load(fileName: ".env");
 
   print('BASE_URL: ${dotenv.env['BASE_URL']}');
 

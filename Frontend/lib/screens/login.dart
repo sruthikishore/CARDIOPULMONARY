@@ -1,11 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:cardiopulmonary_monitor/screens/dashboard.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_textstyles.dart';
 import '../core/theme/app_theme.dart';
-import '../services/api_service.dart';
-
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../core/network/api_config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,37 +21,49 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool isLoading = false;
 
-  /// 🔹 LOGIN HANDLER (API CALL)
+  /// 🔹 LOGIN HANDLER (DB‑CONNECTED, MVP SAFE)
   Future<void> handleLogin() async {
     setState(() => isLoading = true);
 
     try {
-      // 🔴 MVP LOGIC:
-      // For demo, we directly map login → user_id = 1
-      // Later this can be replaced with real auth
-      int userId = 1;
+      // 🔴 MVP decision (as discussed)
+      // Login always maps to user_id = 1 for now
+      final int userId = 1;
 
-      final user = await ApiService.getUser(userId);
+      final response = await http.get(
+        Uri.parse(ApiConfig.users(userId)),
+      );
 
-      if (user != null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DashboardScreen(userId: userId),
-          ),
-        );
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final user = jsonDecode(response.body);
+
+        if (!mounted) return;
+
+        if (user != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DashboardScreen(userId: userId),
+            ),
+          );
+        } else {
+          _showError("Invalid credentials");
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid credentials")),
-        );
+        _showError("User not found");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Server error. Please try again.")),
-      );
+      _showError("Server error. Please try again.");
     }
 
     setState(() => isLoading = false);
+  }
+
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   @override
@@ -74,16 +87,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // App Icon
                 Container(
-                  height: 64,
-                  width: 64,
+                  height: 96,
+                  width: 96,
                   decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(16),
+                    shape: BoxShape.circle,
+                    color: AppColors.card.withOpacity(0.2),
                   ),
-                  child: const Icon(
-                    Icons.monitor_heart,
-                    color: AppColors.primary,
-                    size: 32,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/logo.png',
+                      width: 92,
+                      height: 92,
+                    ),
                   ),
                 ),
 
@@ -91,8 +106,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // App Name
                 Text(
-                  'HealthCare Monitor',
-                  style: AppTextStyles.section.copyWith(color: AppColors.card),
+                  'Vitals AI',
+                  style: AppTextStyles.section.copyWith(
+                    color: AppColors.card,
+                  ),
                 ),
 
                 const SizedBox(height: 6),
@@ -124,8 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: emailController,
                           decoration: InputDecoration(
                             hintText: 'your.email@example.com',
-                            prefixIcon:
-                                const Icon(Icons.email_outlined),
+                            prefixIcon: const Icon(Icons.email_outlined),
                             filled: true,
                             fillColor: AppColors.background,
                             border: OutlineInputBorder(
@@ -145,8 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: true,
                           decoration: InputDecoration(
                             hintText: 'Enter your password',
-                            prefixIcon:
-                                const Icon(Icons.lock_outline),
+                            prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon:
                                 const Icon(Icons.visibility_off_outlined),
                             filled: true,
@@ -205,11 +220,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             const Expanded(child: Divider()),
                             Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                'or',
+                                style: AppTextStyles.caption,
                               ),
-                              child: Text('or',
-                                  style: AppTextStyles.caption),
                             ),
                             const Expanded(child: Divider()),
                           ],
@@ -226,8 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      DashboardScreen(userId: 1),
+                                  builder: (_) => DashboardScreen(userId: 1),
                                 ),
                               );
                             },
@@ -250,8 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 TextSpan(
                                   text: 'Sign Up',
-                                  style:
-                                      AppTextStyles.caption.copyWith(
+                                  style: AppTextStyles.caption.copyWith(
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w600,
                                   ),

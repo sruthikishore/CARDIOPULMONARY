@@ -6,8 +6,16 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_textstyles.dart';
 
+import 'dashboard.dart';
+import 'risk_analysis.dart';
+
 class ProfileSettingsScreen extends StatefulWidget {
-  const ProfileSettingsScreen({super.key});
+  final int userId;
+
+  const ProfileSettingsScreen({
+    super.key,
+    required this.userId,
+  });
 
   @override
   State<ProfileSettingsScreen> createState() => _ProfileSettingsScreenState();
@@ -15,7 +23,6 @@ class ProfileSettingsScreen extends StatefulWidget {
 
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   static final String baseUrl = dotenv.env['BASE_URL']!;
-  final int userId = 1;
 
   bool isLoading = true;
 
@@ -31,18 +38,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   Future<void> loadProfile() async {
     try {
-      final userRes =
-          await http.get(Uri.parse("$baseUrl/api/users/$userId"));
-      final deviceRes =
-          await http.get(Uri.parse("$baseUrl/api/devices/$userId"));
+      final userRes = await http.get(
+        Uri.parse("$baseUrl/api/users/${widget.userId}"),
+      );
 
-      if (userRes.statusCode == 200) {
+      final deviceRes = await http.get(
+        Uri.parse("$baseUrl/api/devices/${widget.userId}"),
+      );
+
+      if (userRes.statusCode == 200 && userRes.body.isNotEmpty) {
         final u = jsonDecode(userRes.body);
-        name = u["name"];
-        email = u["email"];
+        name = u["name"] ?? "";
+        email = u["email"] ?? "";
       }
 
-      if (deviceRes.statusCode == 200) {
+      if (deviceRes.statusCode == 200 && deviceRes.body.isNotEmpty) {
         devices = jsonDecode(deviceRes.body);
       }
     } catch (_) {
@@ -63,10 +73,51 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
 
+      // ✅ BOTTOM NAVIGATION (ADDED)
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2, // Profile
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => DashboardScreen(userId: widget.userId),
+              ),
+            );
+          } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RiskAnalysisScreen(userId: widget.userId),
+              ),
+            );
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: 'Risk',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.primary,
-        leading: const Icon(Icons.arrow_back),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text('Profile & Settings'),
         centerTitle: true,
       ),
@@ -86,8 +137,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                     children: [
                       const CircleAvatar(
                         radius: 30,
-                        backgroundImage:
-                            AssetImage('assets/avatar.png'),
+                        backgroundImage: AssetImage('assets/avatar.png'),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -99,7 +149,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                             Text(email, style: AppTextStyles.caption),
                             const SizedBox(height: 4),
                             Text(
-                              'Patient ID: #CM-$userId',
+                              'Patient ID: #CM-${widget.userId}',
                               style: AppTextStyles.caption,
                             ),
                           ],
@@ -129,19 +179,18 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
               ...devices.map(
                 (d) => _deviceTile(
-                  icon: _iconForDevice(d["device_type"]),
-                  title: d["device_type"],
+                  icon: _iconForDevice(d["device_type"] ?? ""),
+                  title: d["device_type"] ?? "Unknown Device",
                   subtitle:
-                      d["connected"] ? "Connected" : "Not Connected",
-                  connected: d["connected"],
+                      d["connected"] == true ? "Connected" : "Not Connected",
+                  connected: d["connected"] == true,
                 ),
               ),
 
               const SizedBox(height: 24),
 
               // ================= NOTIFICATIONS =================
-              Text('Notification Preferences',
-                  style: AppTextStyles.section),
+              Text('Notification Preferences', style: AppTextStyles.section),
               const SizedBox(height: 12),
 
               _switchTile(
@@ -201,9 +250,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 width: double.infinity,
                 height: 48,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.logout,
-                      color: AppColors.danger),
+                  onPressed: () {
+                    Navigator.popUntil(context, (route) => route.isFirst);
+                  },
+                  icon: const Icon(Icons.logout, color: AppColors.danger),
                   label: Text(
                     'Logout',
                     style: AppTextStyles.body.copyWith(
@@ -234,8 +284,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   // ================= HELPERS =================
 
   IconData _iconForDevice(String type) {
-    if (type.contains("Heart")) return Icons.favorite;
-    if (type.contains("Lung")) return Icons.air;
+    final t = type.toLowerCase();
+    if (t.contains("heart")) return Icons.favorite;
+    if (t.contains("lung")) return Icons.air;
     return Icons.watch;
   }
 
@@ -250,14 +301,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       child: ListTile(
         leading: Icon(
           icon,
-          color:
-              connected ? AppColors.success : AppColors.textSecondary,
+          color: connected ? AppColors.success : AppColors.textSecondary,
         ),
         title: Text(title, style: AppTextStyles.body),
         subtitle: Text(subtitle, style: AppTextStyles.caption),
         trailing: connected
-            ? const Icon(Icons.check_circle,
-                color: AppColors.success)
+            ? const Icon(Icons.check_circle, color: AppColors.success)
             : Text(
                 'Connect',
                 style: AppTextStyles.caption.copyWith(
